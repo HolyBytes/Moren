@@ -13,63 +13,14 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 # Initialize colorama
 init(autoreset=True)
 
-# Function to encrypt API key
-def encrypt_api_key(api_key, password):
-    salt = b'moyrenaisalt123456'  # In production, use a random salt and store it
-    kdf = PBKDF2HMAC(
-        algorithm=hashes.SHA256(),
-        length=32,
-        salt=salt,
-        iterations=100000,
-    )
-    key = base64.urlsafe_b64encode(kdf.derive(password.encode()))
-    f = Fernet(key)
-    encrypted_key = f.encrypt(api_key.encode())
-    return encrypted_key
-
-# Function to decrypt API key
-def decrypt_api_key(encrypted_key, password):
-    try:
-        salt = b'moyrenaisalt123456'  # Use the same salt as in encryption
-        kdf = PBKDF2HMAC(
-            algorithm=hashes.SHA256(),
-            length=32,
-            salt=salt,
-            iterations=100000,
-        )
-        key = base64.urlsafe_b64encode(kdf.derive(password.encode()))
-        f = Fernet(key)
-        decrypted_key = f.decrypt(encrypted_key)
-        return decrypted_key.decode()
-    except Exception:
-        return None
-
-# Function to save encrypted API key
-def save_api_key(api_key, password):
-    encrypted_key = encrypt_api_key(api_key, password)
-    config_dir = os.path.join(os.path.expanduser('~'), '.moyren')
-    os.makedirs(config_dir, exist_ok=True)
-    with open(os.path.join(config_dir, 'api_key.enc'), 'wb') as f:
-        f.write(encrypted_key)
-    
-# Function to load encrypted API key
-def load_api_key(password):
-    config_dir = os.path.join(os.path.expanduser('~'), '.moyren')
-    api_key_path = os.path.join(config_dir, 'api_key.enc')
-    if os.path.exists(api_key_path):
-        with open(api_key_path, 'rb') as f:
-            encrypted_key = f.read()
-        return decrypt_api_key(encrypted_key, password)
-    return None
+# Your OpenRouter API Key
+OPENROUTER_API_KEY = "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"
 
 # Function to initialize OpenAI client
-def init_client(api_key):
-    if not api_key:
-        return None
-    
+def init_client():
     return OpenAI(
         base_url="https://openrouter.ai/api/v1",
-        api_key=api_key,
+        api_key=OPENROUTER_API_KEY,
     )
 
 def clear_screen():
@@ -104,7 +55,7 @@ def display_banner():
     print(Fore.YELLOW + f"    🗓️ Tanggal  : {tanggal}")
     print(Fore.YELLOW + f"    🕒 Waktu    : {waktu}")
     print()
-    print(Fore.GREEN + f"    🌠 Version  : 1.0.0 BETA | 🤖 Model: THUDM GLM-4-32B")
+    print(Fore.GREEN + f"    🌠 Version  : 1.0.0 BETA | 🤖 Model: Meta Llama 3.3 8B Instruct")
     print(Fore.BLUE + "    💻 Created by Ade Pratama (HolyBytes)")
     print(Fore.MAGENTA + "    🔗 GitHub   : https://github.com/HolyBytes/MoyrenAI")
     print(Fore.CYAN + "    ☕ Support  : https://saweria.co/HolyBytes")
@@ -120,8 +71,7 @@ def display_menu():
     print(Fore.YELLOW + "│   [1] 🗨️  Mulai Chat dengan Moyren           │")
     print(Fore.YELLOW + "│   [2] ℹ️  Informasi Moyren                   │")
     print(Fore.YELLOW + "│   [3] ❓  FAQ                               │")
-    print(Fore.YELLOW + "│   [4] 🔑  Pengaturan API Key                 │")
-    print(Fore.YELLOW + "│   [5] 🚪  Keluar                             │")
+    print(Fore.YELLOW + "│   [4] 🚪  Keluar                             │")
     print(Fore.YELLOW + "│                                              │")
     print(Fore.CYAN + "╰──────────────────────────────────────────────╯")
     print(Fore.MAGENTA + "\n" + "─" * 70)
@@ -142,7 +92,7 @@ def display_info():
 │     - Pemecah masalah sehari-hari                   │
 │                                                      │
 │  🛠️ Spesifikasi Teknis:                              │
-│     • Model: THUDM GLM-4-32B                        │
+│     • Model: Meta Llama 3.3 8B Instruct             │
 │     • Platform: OpenRouter API                      │
 │     • Bahasa: Indonesia & Inggris                   │
 │     • Versi: 1.0.0 BETA                             │
@@ -194,67 +144,6 @@ def display_faq():
     print(Fore.MAGENTA + "\n" + "─" * 70)
     input(Fore.GREEN + "\n🌸 Tekan Enter untuk kembali ke menu utama...")
 
-def display_api_settings():
-    print(Fore.CYAN + Style.BRIGHT + "\n╭────────────── 🔑 Pengaturan API Key ──────────────╮")
-    print(Fore.YELLOW + "│                                                  │")
-    print(Fore.YELLOW + "│   [1] ➕ Tambah/Update API Key                   │")
-    print(Fore.YELLOW + "│   [2] 🔍 Cek Status API Key                      │")
-    print(Fore.YELLOW + "│   [3] 🗑️  Hapus API Key                          │")
-    print(Fore.YELLOW + "│   [4] ↩️  Kembali ke Menu Utama                  │")
-    print(Fore.YELLOW + "│                                                  │")
-    print(Fore.CYAN + "╰──────────────────────────────────────────────────╯")
-    
-    choice = input(Fore.GREEN + "\n🌸 Pilih opsi [1-4]: " + Fore.WHITE).strip()
-    
-    if choice == "1":
-        api_key = getpass.getpass(Fore.YELLOW + "📝 Masukkan API Key baru: ")
-        if not api_key:
-            print(Fore.RED + "❌ API Key tidak boleh kosong!")
-            time.sleep(2)
-            return
-            
-        password = getpass.getpass(Fore.YELLOW + "🔐 Buat password untuk enkripsi: ")
-        if not password:
-            print(Fore.RED + "❌ Password tidak boleh kosong!")
-            time.sleep(2)
-            return
-            
-        save_api_key(api_key, password)
-        print(Fore.GREEN + "✅ API Key berhasil disimpan dan dienkripsi!")
-        time.sleep(2)
-        
-    elif choice == "2":
-        password = getpass.getpass(Fore.YELLOW + "🔐 Masukkan password untuk memeriksa API Key: ")
-        api_key = load_api_key(password)
-        
-        if api_key:
-            masked_key = api_key[:4] + "*" * (len(api_key) - 8) + api_key[-4:]
-            print(Fore.GREEN + f"✅ API Key tersedia: {masked_key}")
-        else:
-            print(Fore.RED + "❌ API Key tidak ditemukan atau password salah!")
-        time.sleep(2)
-        
-    elif choice == "3":
-        password = getpass.getpass(Fore.YELLOW + "🔐 Masukkan password untuk konfirmasi: ")
-        api_key = load_api_key(password)
-        
-        if api_key:
-            confirm = input(Fore.RED + "⚠️ Yakin ingin menghapus API Key? (y/n): ").lower()
-            if confirm == 'y':
-                config_dir = os.path.join(os.path.expanduser('~'), '.moyren')
-                api_key_path = os.path.join(config_dir, 'api_key.enc')
-                if os.path.exists(api_key_path):
-                    os.remove(api_key_path)
-                    print(Fore.GREEN + "✅ API Key berhasil dihapus!")
-                else:
-                    print(Fore.RED + "❌ File API Key tidak ditemukan!")
-            else:
-                print(Fore.YELLOW + "⚠️ Penghapusan dibatalkan.")
-        else:
-            print(Fore.RED + "❌ Password salah atau API Key tidak ditemukan!")
-        
-        time.sleep(2)
-
 def display_goodbye():
     clear_screen()
     print(Fore.MAGENTA + Style.BRIGHT + """
@@ -271,9 +160,6 @@ def display_goodbye():
     time.sleep(2)
 
 def chat_with_ai(client, prompt):
-    if client is None:
-        return f"{Fore.RED}❌ API Key tidak ditemukan atau tidak valid. Silakan tambahkan API Key di pengaturan."
-        
     try:
         start_time = time.time()
         response = client.chat.completions.create(
@@ -281,7 +167,7 @@ def chat_with_ai(client, prompt):
                 "HTTP-Referer": "https://github.com/HolyBytes/MoyrenAI",
                 "X-Title": "Moyren AI"
             },
-            model="thudm/glm-4-32b:free",
+            model="meta-llama/llama-3.3-8b-instruct:free",
             messages=[
                 {
                     "role": "system",
@@ -310,12 +196,6 @@ Contoh:
         return f"{Fore.RED}❌ Maaf terjadi error: {str(e)}"
 
 def chat_interface(client):
-    if client is None:
-        print(Fore.RED + "\n❌ API Key tidak ditemukan atau tidak valid.")
-        print(Fore.YELLOW + "📝 Silakan tambahkan API Key di pengaturan terlebih dahulu.")
-        time.sleep(3)
-        return
-        
     print(Fore.CYAN + Style.BRIGHT + "\n╭────────────── 💬 Mode Percakapan Aktif 💬 ──────────────╮")
     print(Fore.YELLOW + "│                                                           │")
     print(Fore.YELLOW + "│    ✨ Ketik 'menu' untuk kembali ke menu utama            │")
@@ -367,34 +247,16 @@ def chat_interface(client):
         print(Fore.CYAN + "└" + "─" * 68 + "┘\n")
 
 def main():
-    # Check if API key exists
-    api_key = None
-    client = None
+    # Initialize client with the hardcoded API key
+    client = init_client()
     
     while True:
         display_banner()
         display_menu()
         
-        # Show API key status
-        config_dir = os.path.join(os.path.expanduser('~'), '.moyren')
-        api_key_path = os.path.join(config_dir, 'api_key.enc')
-        api_status = "✅ Terdeteksi" if os.path.exists(api_key_path) else "❌ Tidak ditemukan"
-        print(Fore.YELLOW + f"\n🔑 Status API Key: {api_status}")
-        
-        choice = input(Fore.GREEN + "\n🌸 Pilih menu [1-5]: " + Fore.WHITE).strip()
+        choice = input(Fore.GREEN + "\n🌸 Pilih menu [1-4]: " + Fore.WHITE).strip()
         
         if choice == "1":
-            # Load API key if needed
-            if client is None and os.path.exists(api_key_path):
-                password = getpass.getpass(Fore.YELLOW + "🔐 Masukkan password untuk mengakses API Key: ")
-                api_key = load_api_key(password)
-                if api_key:
-                    client = init_client(api_key)
-                else:
-                    print(Fore.RED + "❌ Password salah atau API Key bermasalah!")
-                    time.sleep(2)
-                    continue
-            
             chat_interface(client)
             
         elif choice == "2":
@@ -404,16 +266,11 @@ def main():
             display_faq()
             
         elif choice == "4":
-            display_api_settings()
-            # Reset client to force re-authentication if API key changed
-            client = None
-            
-        elif choice == "5":
             display_goodbye()
             sys.exit()
             
         else:
-            print(Fore.RED + "❌ Pilihan tidak valid. Silakan pilih 1-5 ya~")
+            print(Fore.RED + "❌ Pilihan tidak valid. Silakan pilih 1-4 ya~")
             time.sleep(1)
 
 if __name__ == "__main__":
