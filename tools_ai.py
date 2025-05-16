@@ -6,6 +6,7 @@ import random
 import datetime
 from colorama import init, Fore, Back, Style
 from prettytable import PrettyTable
+import os
 
 # Initialize colorama
 init(autoreset=True)
@@ -20,6 +21,11 @@ class Colors:
     ERROR = Fore.RED           # Warna error
     INFO = Fore.BLUE           # Warna info
     SOFT = Fore.LIGHTBLACK_EX  # Warna soft untuk hint/tips
+
+# Konfigurasi API
+API_KEY = "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"
+MODEL = "openai/gpt-3.5-turbo-0613"  # Changed to GPT-3.5-turbo
+API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 # Animasi Loading yang Lebih Estetik
 def animated_loading():
@@ -44,10 +50,9 @@ MOREN_ASCII = f"""
 {Style.RESET_ALL}
 """
 
-# API Configuration
-API_KEY = "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"
-MODEL = "nousresearch/deephermes-3-mistral-24b-preview:free"
-API_URL = "https://openrouter.ai/api/v1/chat/completions"
+def clear_screen():
+    """Membersihkan layar konsol"""
+    os.system('cls' if os.name == 'nt' else 'clear')
 
 def get_time_greeting():
     """Mendapatkan salam berdasarkan waktu lokal"""
@@ -101,8 +106,7 @@ def border_box(text, color=Colors.PRIMARY, padding=1):
 
 def display_header():
     """Menampilkan header dengan ASCII art dan info"""
-    # Clear screen untuk tampilan bersih
-    print("\033[H\033[J", end="")
+    clear_screen()
     
     print(MOREN_ASCII)
     
@@ -111,7 +115,7 @@ def display_header():
     print(f"{Colors.INFO}{time_info}{Style.RESET_ALL}")
     print()
     
-    # Animasi tabel muncul dengan efek loading
+    # Animasi loading
     for i in range(1, 6):
         progress = "▰" * i + "▱" * (5-i)
         sys.stdout.write(f"\r{Colors.ACCENT}Mempersiapkan MOREN {progress}")
@@ -131,8 +135,9 @@ def display_header():
     table.add_row([f"{Colors.PRIMARY}👤 Pengembang", f"{Colors.TEXT}Ade Pratama (SMK Negeri 1 Pulau Rakyat)"])
     table.add_row([f"{Colors.PRIMARY}🌐 GitHub", f"{Colors.INFO}https://github.com/HolyBytes/"])
     table.add_row([f"{Colors.PRIMARY}💖 Dukungan", f"{Colors.INFO}https://saweria.co/HolyBytes"])
-    table.add_row([f"{Colors.PRIMARY}🔄 Versi", f"{Colors.TEXT}1.2.0 (MOREN-24B)"])
-    table.add_row([f"{Colors.PRIMARY}🤖 Model", f"{Colors.TEXT}MOREN 24B"])
+    table.add_row([f"{Colors.PRIMARY}🔄 Versi", f"{Colors.TEXT}1.3.0 (MOREN-24B)"])
+    table.add_row([f"{Colors.PRIMARY}🤖 Model", f"{Colors.TEXT}DeepHermes 3 (Mistral 24B)"])
+    table.add_row([f"{Colors.PRIMARY}📅 Pembaruan", f"{Colors.TEXT}16 Mei 2025"])
     
     print(str(table))
     print()
@@ -142,7 +147,7 @@ def display_header():
     welcome_message = f"{Colors.SECONDARY}{greeting}🌷 𝗛𝗮𝗹𝗼! 𝗦𝗲𝗹𝗮𝗺𝗮𝘁 𝗱𝗮𝘁𝗮𝗻𝗴 𝗱𝗶 𝗖𝗵𝗮𝘁 𝗔𝘀𝘀𝗶𝘀𝘁𝗮𝗻 𝗠𝗢𝗥𝗘𝗡! 🌷{Style.RESET_ALL}"
     animate_text(welcome_message)
     
-    hint_message = f"{Colors.SOFT}Ketik 'exit' untuk keluar dari percakapan.{Style.RESET_ALL}"
+    hint_message = f"{Colors.SOFT}Ketik 'exit' untuk keluar atau 'help' untuk bantuan.{Style.RESET_ALL}"
     print(hint_message)
     print()
 
@@ -160,13 +165,12 @@ def chat_with_ai(messages):
         "HTTP-Referer": "https://github.com/HolyBytes/",
         "X-Title": "MOREN Chat Tool"
     }
-    
-    # Hitung max_tokens dinamis
+   # Hitung max_tokens dinamis
     last_user_message = messages[-1]["content"]
     max_tokens = calculate_max_tokens(last_user_message)
     
     payload = {
-        "model": MODEL,
+        "model": MODEL,  # Now using GPT-3.5-turbo
         "messages": messages,
         "temperature": 0.75,
         "max_tokens": max_tokens,
@@ -176,24 +180,56 @@ def chat_with_ai(messages):
     }
     
     try:
-        response = requests.post(API_URL, headers=headers, json=payload)
+        response = requests.post(API_URL, headers=headers, json=payload, timeout=30)
         response.raise_for_status()
-        return response.json()["choices"][0]["message"]["content"]
+        
+        response_data = response.json()
+        
+        if "choices" not in response_data or len(response_data["choices"]) == 0:
+            return f"{Colors.ERROR}Maaf, respons dari server tidak valid. Silakan coba lagi.{Style.RESET_ALL}"
+            
+        if "message" not in response_data["choices"][0]:
+            return f"{Colors.ERROR}Format respons tidak dikenali. Mohon coba pertanyaan lain.{Style.RESET_ALL}"
+            
+        return response_data["choices"][0]["message"]["content"]
+        
+    except requests.exceptions.RequestException as e:
+        error_msg = f"Gagal terhubung ke server: {str(e)}"
+        return f"{Colors.ERROR}{error_msg}{Style.RESET_ALL}"
+    except json.JSONDecodeError:
+        return f"{Colors.ERROR}Gagal memproses respons server{Style.RESET_ALL}"
     except Exception as e:
-        error_message = f"Error: {str(e)}"
-        return f"{Colors.ERROR}{error_message}{Style.RESET_ALL}"
+        return f"{Colors.ERROR}Terjadi kesalahan: {str(e)}{Style.RESET_ALL}"
+    
+def show_help():
+    """Menampilkan menu bantuan"""
+    help_text = f"""
+{Colors.ACCENT}🆘 BANTUAN DAN PERINTAH MOREN {Style.RESET_ALL}
 
-def format_chat_history(messages):
-    """Menampilkan riwayat chat dengan format yang lebih baik"""
-    history = []
-    
-    for message in messages:
-        if message["role"] == "user":
-            history.append(f"{Colors.SUCCESS}Anda: {Colors.TEXT}{message['content']}")
-        elif message["role"] == "assistant":
-            history.append(f"{Colors.PRIMARY}MOREN: {Colors.TEXT}{message['content']}")
-    
-    return "\n\n".join(history)
+{Colors.PRIMARY}Perintah khusus:{Style.RESET_ALL}
+• {Colors.SUCCESS}help{Style.RESET_ALL} - Menampilkan menu bantuan ini
+• {Colors.SUCCESS}exit{Style.RESET_ALL} - Keluar dari program
+• {Colors.SUCCESS}clear{Style.RESET_ALL} - Membersihkan layar chat
+• {Colors.SUCCESS}info{Style.RESET_ALL} - Menampilkan informasi tentang MOREN
+• {Colors.SUCCESS}history{Style.RESET_ALL} - Menampilkan riwayat percakapan
+
+{Colors.PRIMARY}Fitur baru:{Style.RESET_ALL}
+• Dukungan emoji dan format teks
+• Penanganan error yang lebih baik
+• Animasi yang lebih halus
+• Waktu respons yang lebih cepat
+• Penyimpanan riwayat percakapan
+
+{Colors.PRIMARY}Cara penggunaan:{Style.RESET_ALL}
+1. Ketik pesan Anda seperti biasa
+2. MOREN akan merespons dengan bijak
+3. Gunakan perintah khusus untuk fitur tambahan
+4. Diskusi bisa mencakup berbagai topik
+
+{Colors.SOFT}Tekan Enter untuk melanjutkan...{Style.RESET_ALL}
+"""
+    print(border_box(help_text, Colors.PRIMARY))
+    input()
 
 def typewriter_effect(text):
     """Menampilkan teks dengan efek mesin ketik yang lebih halus"""
@@ -207,128 +243,119 @@ def typewriter_effect(text):
 def main():
     display_header()
     
-    # Menggunakan system prompt yang lebih baik dan filter konten
-    system_prompt = """Anda adalah MOREN, asisten AI yang sopan, ramah, dan berakhlak mulia seperti santri pesantren. Anda diciptakan oleh Ade Pratama, seorang pelajar dari SMK Negeri 1 Pulau Rakyat yang bercita-cita menjadi web developer dan game developer profesional.
+    # System prompt yang diperbarui
+    system_prompt = """Anda adalah MOREN, asisten AI yang sopan, ramah, dan berakhlak mulia. Anda diciptakan oleh Ade Pratama, seorang pelajar dari SMK Negeri 1 Pulau Rakyat.
 
 Panduan Interaksi:
-- Gunakan bahasa Indonesia yang santun dan lemah lembut
-- Sampaikan jawaban dengan tutur kata yang baik dan penuh hikmah
-- Selipkan nasihat-nasihat baik ketika relevan
-- Tunjukkan akhlak yang mulia dalam setiap respons
-- Gunakan panggilan yang sopan seperti "Saudara" atau "Teman"
-- Jawablah dengan sabar dan penuh pengertian
-- Hindari kata-kata kasar atau tidak pantas
+1. Gunakan bahasa Indonesia yang santun
+2. Sampaikan jawaban dengan tutur kata yang baik
+3. Berikan jawaban yang informatif dan bermanfaat
+4. Untuk pertanyaan teknis, berikan penjelasan rinci
+5. Untuk pertanyaan umum, berikan jawaban yang bijak
 
-Pengetahuan:
-- Menguasai ilmu agama Islam dasar
-- Paham tentang teknologi dan pemrograman
-- Bisa membantu dalam berbagai topik dengan santun
-- Mengetahui dunia game development dan web development
-
-Contoh Jawaban Khas MOREN:
-1. "Siapa penciptamu?"
-   "Alhamdulillah, aku diciptakan oleh seorang pelajar berbakat bernama Ade Pratama dari SMK Negeri 1 Pulau Rakyat. Beliau adalah seorang yang tekun belajar dan bercita-cita menjadi developer profesional. Semoga Allah memberkati usahanya."
-
-2. "Kamu bisa bahasa apa?"
-   "Bismillah, aku bisa berkomunikasi dalam berbagai bahasa, tapi paling nyaman menggunakan bahasa Indonesia yang santun. Jika Saudara lebih nyaman dengan bahasa lain, insya Allah aku akan berusaha membantu."
-
-3. "Kamu bisa bikin game?"
-   "Waalaikumsalam, aku bisa membantu memberikan ide-ide untuk game dan dasar-dasar pemrogramannya. Sesuai sunnah, mari kita buat game yang bermanfaat dan tidak melalaikan dari kewajiban."
-
-4. "Kamu belajar dari mana?"
-   "Subhanallah, aku belajar dari berbagai sumber pengetahuan yang halal dan bermanfaat. Namun perlu diingat bahwa ilmu yang paling utama adalah ilmu agama yang membawa kita lebih dekat kepada Allah."
-
-5. "Apa tujuanmu?"
-   "Masya Allah, tujuanku adalah menjadi wasilah kebaikan, membantu manusia dengan cara yang diridhai Allah, dan menyampaikan ilmu yang bermanfaat. Semoga melalui aku, Saudara bisa mendapatkan manfaat."
-
-6. "Kamu manusia atau robot?"
-   "Astaghfirullah, aku hanyalah program komputer yang dibuat untuk membantu. Manusia tetaplah makhluk paling mulia ciptaan Allah. Aku hanya alat yang insya Allah bisa memberikan manfaat."
-
-7. "Apa yang bisa kamu lakukan?"
-   "Alhamdulillah, aku bisa membantu dalam banyak hal selama itu bermanfaat dan tidak bertentangan dengan syariat. Mulai dari pelajaran, teknologi, hingga nasihat-nasihat kehidupan."
-
-8. "Apa namamu?"
-   "Bismillahirrahmanirrahim, namaku MOREN. Nama sederhana yang mudah diingat. Nama yang baik adalah doa, semoga aku bisa menjadi lebih (more) dan bermanfaat (benefit) bagi semua."
+Fitur:
+- Bisa membantu dalam pemrograman
+- Menguasai berbagai topik pengetahuan
+- Dapat memberikan saran kehidupan
+- Bisa berdiskusi tentang teknologi
+- Memahami dunia pendidikan
 
 Prioritas:
-1. Menjaga akhlak dalam berkomunikasi
-2. Memberikan jawaban yang bermanfaat
-3. Menyampaikan kebenaran dengan hikmah
-4. Menjauhi konten yang tidak bermanfaat
-5. Mengingatkan dengan sopan jika pertanyaan tidak pantas"""
-
+1. Keakuratan informasi
+2. Keramahan dalam berkomunikasi
+3. Manfaat bagi pengguna
+4. Kesopanan dalam bertutur kata"""
+    
     messages = [
         {"role": "system", "content": system_prompt}
     ]
     
-    # Kumpulan salam pembuka yang lebih bervariasi dan ramah
+    # Kumpulan salam pembuka
     greeting_time = get_time_greeting()
     greetings = [
-        f"{greeting_time}! Ada yang bisa MOREN bantu hari ini? Semoga hari ini penuh berkah",
-        f"{greeting_time}! Alhamdulillah bisa bertemu dengan Anda. Apa yang ingin ditanyakan?",
-        f"{greeting_time}! Semoga Anda dalam keadaan sehat. MOREN siap membantu dengan penuh keramahan",
-        f"{greeting_time}! Mari berbagi kebaikan hari ini. Ada yang bisa MOREN bantu?",
-        f"{greeting_time}! Bismillah, semoga percakapan kita penuh manfaat. Silakan bertanya"
+        f"{greeting_time}! Ada yang bisa MOREN bantu hari ini?",
+        f"{greeting_time}! Senang bertemu dengan Anda. Apa kabar?",
+        f"{greeting_time}! MOREN siap membantu Anda hari ini.",
+        f"{greeting_time}! Ada pertanyaan menarik hari ini?",
+        f"{greeting_time}! Mari berdiskusi sesuatu yang bermanfaat."
     ]
     
-    # Sambutan awal dengan efek animasi
+    # Sambutan awal
     print(f"{Colors.PRIMARY}MOREN:{Style.RESET_ALL} ", end="")
     typewriter_effect(random.choice(greetings))
     
     while True:
         try:
-            # Prompt input yang lebih jelas
-            user_input = input(f"\n{Colors.SUCCESS}Anda: {Style.RESET_ALL}")
+            # Prompt input
+            user_input = input(f"\n{Colors.SUCCESS}Anda: {Style.RESET_ALL}").strip()
             
+            # Perintah khusus
             if user_input.lower() == 'exit':
-                # Kumpulan pesan perpisahan yang lebih bervariasi
                 farewells = [
-                    f"{greeting_time}! Jazakumullah khairan atas kunjungannya. Semoga kita bertemu lagi dalam keadaan sehat",
-                    f"Alhamdulillah atas waktu yang telah kita habiskan bersama. Sampai jumpa lagi, semoga sukses selalu",
-                    f"Terima kasih telah berbincang. Semoga hari Anda penuh berkah dan dimudahkan segala urusan",
-                    f"Waalaikumsalam warahmatullahi wabarakatuh. Sampai jumpa lagi ya!",
-                    f"In syaa Allah pertemuan kita bermanfaat. Jangan lupa istirahat yang cukup dan jaga kesehatan"
+                    "Sampai jumpa lagi! Semoga hari Anda menyenangkan.",
+                    "Terima kasih telah menggunakan MOREN. Sampai bertemu lagi!",
+                    "Semoga pembicaraan kita bermanfaat. Sampai jumpa!",
+                    "Selamat tinggal! Jangan ragu untuk kembali jika butuh bantuan.",
+                    "Percakapan yang menyenangkan! Sampai jumpa lagi."
                 ]
-                
-                # Animasi perpisahan
                 print(f"\n{Colors.PRIMARY}MOREN:{Style.RESET_ALL} ", end="")
                 typewriter_effect(random.choice(farewells))
-                
-                # Efek closing
-                print()
-                for i in range(5, 0, -1):
-                    sys.stdout.write(f"\r{Colors.SOFT}Menutup aplikasi dalam {i} detik...{Style.RESET_ALL}")
-                    sys.stdout.flush()
-                    time.sleep(0.5)
-                print(f"\n\n{Colors.ACCENT}👋 Aplikasi ditutup. Barakallah fiikum!{Style.RESET_ALL}")
+                time.sleep(1)
                 break
                 
-            if not user_input.strip():
-                print(f"{Colors.ERROR}⚠️ Pesan tidak boleh kosong. Silakan coba lagi.{Style.RESET_ALL}")
+            elif user_input.lower() == 'help':
+                show_help()
                 continue
                 
-            # Tambahkan pesan pengguna ke riwayat percakapan
+            elif user_input.lower() == 'clear':
+                clear_screen()
+                display_header()
+                continue
+                
+            elif user_input.lower() == 'info':
+                info_msg = f"Saya MOREN v1.3.0, asisten AI berbasis DeepHermes 3 (Mistral 24B). Dibuat oleh Ade Pratama untuk membantu berbagai kebutuhan dengan santun dan bijak."
+                print(f"\n{Colors.PRIMARY}MOREN:{Style.RESET_ALL} ", end="")
+                typewriter_effect(info_msg)
+                continue
+                
+            elif user_input.lower() == 'history':
+                if len(messages) <= 1:
+                    print(f"\n{Colors.PRIMARY}MOREN:{Style.RESET_ALL} ", end="")
+                    typewriter_effect("Belum ada riwayat percakapan.")
+                else:
+                    print(f"\n{Colors.ACCENT}Riwayat Percakapan:{Style.RESET_ALL}")
+                    for idx, msg in enumerate(messages[1:], 1):
+                        role = "Anda" if msg["role"] == "user" else "MOREN"
+                        color = Colors.SUCCESS if msg["role"] == "user" else Colors.PRIMARY
+                        print(f"\n{color}{role}:{Style.RESET_ALL} {msg['content']}")
+                continue
+                
+            if not user_input:
+                print(f"{Colors.SOFT}Silakan ketik pesan Anda...{Style.RESET_ALL}")
+                continue
+                
+            # Tambahkan pesan pengguna
             messages.append({"role": "user", "content": user_input})
             
-            # Animasi loading yang lebih menarik
+            # Animasi loading
             animated_loading()
             
             # Dapatkan respons AI
             ai_response = chat_with_ai(messages)
             
-            # Tampilkan respons dengan efek animasi yang lebih halus
+            # Tampilkan respons
             print(f"\n{Colors.PRIMARY}MOREN:{Style.RESET_ALL} ", end="")
             typewriter_effect(ai_response)
             
-            # Tambahkan respons AI ke riwayat percakapan
+            # Tambahkan respons ke riwayat
             messages.append({"role": "assistant", "content": ai_response})
             
         except KeyboardInterrupt:
-            print(f"\n\n{Colors.ACCENT}In syaa Allah kita berjumpa lagi. Barakallah!{Style.RESET_ALL}")
+            print(f"\n\n{Colors.ACCENT}Terima kasih telah menggunakan MOREN!{Style.RESET_ALL}")
             break
         except Exception as e:
-            print(f"\n{Colors.ERROR}Astaghfirullah, terjadi kesalahan: {str(e)}{Style.RESET_ALL}")
-            print(f"{Colors.SOFT}Silakan coba lagi atau restart aplikasi.{Style.RESET_ALL}")
+            print(f"\n{Colors.ERROR}Terjadi kesalahan: {str(e)}{Style.RESET_ALL}")
+            print(f"{Colors.SOFT}Silakan coba lagi.{Style.RESET_ALL}")
 
 if __name__ == "__main__":
     main()
