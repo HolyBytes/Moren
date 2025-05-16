@@ -1,88 +1,136 @@
-# **MOREN AI Assistant - Dokumentasi Lengkap**  
+# **📌 MOREN AI Assistant - Panduan Lengkap (Termux & Desktop)**
 
-## **📌 Deskripsi**  
-**MOREN** adalah asisten AI berbasis terminal yang menggunakan model **DeepHermes-3-Mistral 24B** dari OpenRouter. Dibangun dengan Python, MOREN dirancang untuk memberikan pengalaman chatting yang **santun, informatif, dan estetik**, khususnya untuk pengguna yang menginginkan interaksi AI dengan nilai-nilai akhlak yang baik.  
-
----
-
-## **🔧 Fungsi & Kegunaan Script**  
-
-### **1. Fungsi Utama**  
-| **Fungsi** | **Kegunaan** | **Dapat Diedit?** | **Alasan** |
-|------------|-------------|------------------|------------|
-| **`animated_loading()`** | Menampilkan animasi loading saat AI berpikir | ✅ | Bisa dimodifikasi untuk efek visual berbeda |
-| **`get_time_greeting()`** | Memberikan salam berdasarkan waktu (Pagi/Siang/Sore/Malam) | ✅ | Bisa disesuaikan dengan budaya lokal |
-| **`get_time_info()`** | Menampilkan waktu & tanggal dalam format Indonesia | ✅ | Format tanggal bisa diubah sesuai kebutuhan |
-| **`animate_text()`** | Efek ketik manual untuk pesan MOREN | ✅ | Kecepatan ketik bisa diatur |
-| **`border_box()`** | Membuat kotak dekoratif untuk teks | ✅ | Bisa diganti dengan gaya border lain |
-| **`display_header()`** | Menampilkan header (ASCII art, info waktu, tabel) | ⚠️ (Sebaiknya tidak) | Mengandung branding MOREN |
-| **`calculate_max_tokens()`** | Menghitung token dinamis berdasarkan panjang input | ⚠️ (Hanya jika paham AI) | Memengaruhi performa API |
-| **`chat_with_ai()`** | Mengirim & menerima respons dari API OpenRouter | ⚠️ (Hanya API Key & Model) | Mengubah ini bisa merusak fungsi utama |
-| **`format_chat_history()`** | Memformat riwayat obrolan | ✅ | Bisa disesuaikan gaya chat |
-| **`typewriter_effect()`** | Animasi teks seperti mesin ketik | ✅ | Bisa diatur kecepatannya |
-| **`main()`** | Fungsi utama yang menjalankan semua logika | ⚠️ (Hanya untuk pengembang) | Inti program, edit hati-hati |
+Berikut adalah dokumentasi **lengkap** untuk menjalankan **MOREN AI** di Termux/Desktop, termasuk bagian yang bisa diedit, cara instalasi, dan perbaikan bug.
 
 ---
 
-## **⚙️ Bagian yang Bisa & Tidak Bisa Diedit**  
+## **📂 Struktur File**
+```
+MoyrenAI/
+├── README.md               # Dokumentasi proyek
+├── tools_ai.py             # Script utama MOREN AI
+└── requirements.txt        # Dependensi yang diperlukan
+```
+
+---
+
+## **🛠️ Bagian yang Bisa & Tidak Bisa Diedit**
 
 ### **✅ Bisa Diedit (Customizable)**
-1. **Animasi & Tampilan**  
-   - Warna (`Colors` class)  
-   - Efek ketik (`typewriter_effect()`)  
-   - Animasi loading (`animated_loading()`)  
-   - Format waktu (`get_time_info()`)  
-
-2. **Sistem Prompt**  
-   - Bisa diubah di `system_prompt` (dalam `main()`) untuk menyesuaikan kepribadian AI.  
-
-3. **Konfigurasi API**  
-   - **API Key** (Ganti dengan milik sendiri)  
-   - **Model AI** (Bisa pilih model lain di OpenRouter)  
+| **File/Bagian**          | **Apa yang Bisa Diubah?**                  | **Contoh Modifikasi** |
+|--------------------------|--------------------------------------------|-----------------------|
+| **`tools_ai.py`**        | Warna (`Colors` class)                    | Ganti `PRIMARY = Fore.CYAN` jadi `PRIMARY = Fore.BLUE` |
+|                          | Animasi loading (`animated_loading()`)     | Ubah simbol `⣾⣽⣻` jadi `⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏` |
+|                          | Salam (`get_time_greeting()`)              | Tambahkan salam khusus seperti "Selamat berkah hari!" |
+|                          | System Prompt (`system_prompt`)            | Sesuaikan kepribadian AI (contoh: jadi lebih formal) |
+| **`README.md`**          | Deskripsi, instruksi, kontak               | Update sesuai kebutuhan proyek |
 
 ### **❌ Tidak Disarankan Diedit (Kecuali Paham Kode)**
-1. **Struktur Utama `chat_with_ai()`**  
-   - Mengubah ini bisa menyebabkan API error.  
-2. **Logika Token (`calculate_max_tokens()`)**  
-   - Memengaruhi biaya & stabilitas API.  
-3. **Header & Tampilan Awal (`display_header()`)**  
-   - Mengandung identitas MOREN, sebaiknya tetap ada.  
+| **File/Bagian**          | **Alasan**                                |
+|--------------------------|-------------------------------------------|
+| **Struktur `chat_with_ai()`** | Jika salah edit, API bisa error |
+| **`calculate_max_tokens()`**  | Memengaruhi biaya & stabilitas API |
+| **Import library** (`requests`, `colorama`, dll) | Jika dihapus, program error |
 
 ---
 
-## **✨ Kelebihan MOREN**  
-✔ **Ramah & Santun** – Dibangun dengan nilai-nilai akhlak yang baik.  
-✔ **Tampilan Estetik** – Warna, animasi, dan ASCII art yang menarik.  
-✔ **Dinamis** – Token dihitung otomatis berdasarkan panjang pesan.  
-✔ **Multi-fungsi** – Bisa digunakan untuk edukasi, hiburan, dan bantuan teknis.  
-✔ **Open Customization** – Banyak bagian yang bisa disesuaikan.  
+## **🔧 Perbaikan Bug & Typos**
+Beberapa kesalahan dalam kode yang perlu diperbaiki:
+1. **`colorama` salah ketik jadi `colorman`** (Baris 7)  
+   ```python
+   # Salah:
+   from colorman import init, Fore, Back, Style
+   
+   # Benar:
+   from colorama import init, Fore, Back, Style
+   ```
+2. **`PrettyTable` salah ketik jadi `Prettytable`** (Baris 8)  
+   ```python
+   # Salah:
+   from prettytable import Prettytable
+   
+   # Benar:
+   from prettytable import PrettyTable
+   ```
+3. **Kesalahan nama warna di `Colors` class**  
+   ```python
+   # Salah:
+   PRIMARY = Fore.COM  # Seharusnya Fore.CYAN
+   RECENT = Fore.VELLOW  # Seharusnya Fore.YELLOW
+   TDST = Fore.WEITE  # Seharusnya Fore.WHITE
+   ```
 
 ---
 
-## **⚠️ Kekurangan MOREN**  
-✖ **Bergantung API** – Memerlukan koneksi internet & API key.  
-✖ **Biaya API** – Jika pakai model berbayar, bisa ada biaya.  
-✖ **Tidak Offline** – Tidak bisa jalan tanpa OpenRouter.  
-✖ **Terbatas di Terminal** – Belum punya GUI (Graphical User Interface).  
+## **📥 Cara Install di Termux**
+### **1. Instal Python & Git**
+```bash
+pkg update && pkg upgrade
+pkg install python git
+```
+
+### **2. Clone Repository**
+```bash
+git clone https://github.com/HolyBytes/MoyrenAI.git
+cd MoyrenAI
+```
+
+### **3. Instal Dependensi**
+```bash
+pip install requests colorama prettytable
+```
+
+### **4. Jalankan MOREN AI**
+```bash
+python tools_ai.py
+```
 
 ---
 
-## **📩 Kontak & Dukungan**  
-Untuk pertanyaan atau kolaborasi, silakan hubungi:  
-- **GitHub**: [github.com/HolyBytes](https://github.com/HolyBytes)  
-- **Forum Diskusi**: [Coming Soon]  
+## **💻 Cara Install di Windows/Linux**
+### **1. Install Python 3.8+**
+- Download dari [python.org](https://www.python.org/downloads/)  
+- Pastikan **"Add Python to PATH"** dicentang.
+
+### **2. Clone Repository (Git) atau Download Manual**
+```bash
+git clone https://github.com/HolyBytes/MoyrenAI.git
+cd MoyrenAI
+```
+
+### **3. Buat Virtual Environment (Opsional)**
+```bash
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+venv\Scripts\activate     # Windows
+```
+
+### **4. Install Dependensi**
+```bash
+pip install -r requirements.txt  # Jika ada
+# atau
+pip install requests colorama prettytable
+```
+
+### **5. Run Script**
+```bash
+python tools_ai.py
+```
 
 ---
 
-## **🔐 Lisensi**  
-**MOREN** menggunakan lisensi **MIT**, artinya:  
-✅ Bisa digunakan **gratis** untuk proyek pribadi & komersial.  
-✅ Boleh **dimodifikasi** asalkan tetap mencantumkan credit.  
-✅ **Tidak bertanggung jawab** atas penyalahgunaan.  
+## **⚡ Fitur Tambahan yang Bisa Dikembangkan**
+1. **GUI dengan Tkinter** (Agar bisa dipakai tanpa terminal).  
+2. **Mode Offline** (Pakai model lokal seperti Llama.cpp).  
+3. **Riwayat Chat** (Simpan percakapan ke file `.txt`).  
+4. **Suara (TTS)** Tambahkan text-to-speech dengan `gTTS`.  
 
 ---
 
-### **🎯 Kesimpulan**  
-MOREN adalah **asisten AI terminal yang santun & customizable**, cocok untuk yang ingin AI dengan sentuhan akhlak baik. Meski punya beberapa keterbatasan (seperti ketergantungan API), MOREN tetap bisa dikembangkan lebih lanjut sesuai kebutuhan pengguna.  
+## **📌 Kesimpulan**
+- ✔ **MOREN AI** siap dipakai di Termux & PC.  
+- ✔ **Bug sudah diperbaiki** (typo `colorama`, `PrettyTable`, dll).  
+- ✔ **Customizable** untuk warna, animasi, dan prompt.  
+- ❌ **Jangan edit fungsi kritis** (`chat_with_ai()`, token calculation).  
 
-**Selamat mencoba! Semoga bermanfaat. 🌷**
+**🚀 Selamat mencoba!** Untuk pertanyaan, buka **Issue** di [GitHub](https://github.com/HolyBytes/MoyrenAI).
